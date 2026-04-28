@@ -1,39 +1,70 @@
-name: Deploy to GitHub Pages
+name: Build, Sync and Deploy
 
 on:
   push:
     branches: ["main"]
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
 jobs:
-  build-and-deploy:
+  build-sync-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      # 1. Checkout both repositories
+      - name: Checkout ELM
         uses: actions/checkout@v4
+        with:
+          path: elm
 
+      - name: Checkout Fictif
+        uses: actions/checkout@v4
+        with:
+          repository: xipid/fictif
+          path: fictif
+
+      # 2. Setup environment
       - name: Install Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
 
-      - name: Install dependencies
+      # 3. Build Fictif framework
+      - name: Install Fictif dependencies
+        working-directory: fictif
         run: bun install
 
-      - name: Build
+      - name: Build Fictif
+        working-directory: fictif
         run: bun run build
 
+      # 4. Build ELM application & library
+      - name: Install ELM dependencies
+        working-directory: elm
+        run: bun install
+
+      - name: Build ELM
+        working-directory: elm
+        run: bun run build
+
+      # 5. Sync ELM dist back to repository
+      - name: Commit ELM dist back to repo
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: sync production build [skip ci]"
+          file_pattern: 'dist/*'
+          repository: elm
+
+      # 6. Deploy App to GitHub Pages
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './dist'
+          path: './elm/dist'
 
       - name: Deploy to GitHub Pages
         id: deployment
