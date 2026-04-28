@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+/* ─── Theme Tokens ─── */
+@theme {
+  --font-sans: 'Montserrat', ui-sans-serif, system-ui, sans-serif;
+
+  --color-surface-900: #07070f;
+  --color-surface-800: #0c0c1a;
+  --color-surface-700: #12122a;
+  --color-surface-600: #1a1a3a;
+  --color-surface-500: #24244a;
+
+  --color-accent-400: #a78bfa;
+  --color-accent-500: #8b5cf6;
+  --color-accent-600: #7c3aed;
+
+  --color-neon-green: #34d399;
+  --color-neon-blue: #38bdf8;
+  --color-neon-pink: #f472b6;
+  --color-neon-orange: #fb923c;
+
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+}
+
+/* ─── Base Resets ─── */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-surface-900);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+#fictif-root-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+/* ─── Utility Classes ─── */
+.glass {
+  background: rgba(12, 12, 26, 0.7);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid rgba(139, 92, 246, 0.12);
+}
+
+.glass-light {
+  background: rgba(18, 18, 42, 0.5);
+  backdrop-filter: blur(12px) saturate(1.2);
+  border: 1px solid rgba(139, 92, 246, 0.08);
+}
+
+.glow-text {
+  text-shadow:
+    0 0 20px rgba(139, 92, 246, 0.4),
+    0 0 40px rgba(139, 92, 246, 0.2);
+}
+
+.glow-border {
+  box-shadow:
+    0 0 12px rgba(139, 92, 246, 0.25),
+    inset 0 0 12px rgba(139, 92, 246, 0.05);
+}
+
+.glow-border-active {
+  box-shadow:
+    0 0 20px rgba(139, 92, 246, 0.5),
+    0 0 40px rgba(139, 92, 246, 0.2),
+    inset 0 0 16px rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+/* ─── Scrollbar Styling ─── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.5);
+}
+
+/* ─── Transition Utilities ─── */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.slide-up-enter-from {
+  opacity: 0;
+  transform: translateY(100%);
+}
+
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(100%);
+}
+
+/* ─── Fictif Curtain Override ─── */
+.fictif-curtain--full {
+  background: var(--color-surface-900) !important;
+}
+
+.curtain__title {
+  font-family: var(--font-sans) !important;
+  color: var(--color-accent-400) !important;
+}
+
+.curtain__message {
+  font-family: var(--font-sans) !important;
+  color: var(--color-text-secondary) !important;
+}
+
+.curtain__icon {
+  color: var(--color-accent-500) !important;
+}
+
+.curtain__icon-glow {
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%) !important;
+}
