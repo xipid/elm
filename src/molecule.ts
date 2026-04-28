@@ -155,20 +155,20 @@ export class Molecule {
 
         // 1. Try Formula/Semi-Formula search FIRST (especially if it looks like a formula)
         // This addresses user request to prioritize formulas before falling back to SMILES.
-        let results = await this.fromFormula(query);
+        let results = await this.fromFormula(qStr);
         if (results.length > 0) return results;
 
-        results = await this.fromSemiFormula(query);
+        results = await this.fromSemiFormula(qStr);
         if (results.length > 0) return results;
 
         // 2. Try Name search
-        results = await this.fromName(query);
+        results = await this.fromName(qStr);
         if (results.length > 0) return results;
 
         // 3. Fallback: try to construct directly if it looks like SMILES
         // Only do this if it's NOT a suspicious formula string that failed above
         try {
-            const m = await this.fromSmiles(query);
+            const m = await this.fromSmiles(qStr);
             return [m];
         } catch {
             return [];

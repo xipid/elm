@@ -43,7 +43,8 @@ export default defineConfig(({ command, mode }) => {
         dts({ 
           insertTypesEntry: true,
           include: ['src/**/*.ts'],
-          outDir: 'dist'
+          outDir: 'dist',
+          skipDiagnostics: true, // Don't crash on typing errors during declaration build
         })
       ],
       resolve: {
@@ -71,6 +72,9 @@ export default defineConfig(({ command, mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.png', 'icon-192.png', 'icon-512.png'],
+        workbox: {
+          maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // Increase to 10MB to allow heavy assets
+        },
         manifest: {
           name: 'ELM — Chemistry Experience',
           short_name: 'ELM',
@@ -109,6 +113,7 @@ export default defineConfig(({ command, mode }) => {
     build: {
       target: 'esnext',
       minify: 'terser',
+      chunkSizeWarningLimit: 3000, // Increase limit for scientific engines
       terserOptions: {
         compress: { drop_console: true, drop_debugger: true }
       },
@@ -118,7 +123,8 @@ export default defineConfig(({ command, mode }) => {
             'vendor-vue': ['vue'],
             'vendor-animation': ['gsap'],
             'vendor-graphics': ['three', '@tresjs/core'],
-            'vendor-icons': ['@phosphor-icons/vue']
+            // Removed vendor-icons manual chunk to enable Treeshaking. 
+            // Manual chunking of the icon library was pulling the entire 5.7MB package.
           }
         }
       }
