@@ -136,33 +136,32 @@ export class Molecule {
         return results[0] || mol;
     }
 
-    public static async fromName(name: string): Promise<Molecule[]> {
-        return this.fromPubChemSearch('name', name);
+    public static async fromName(name: string, signal?: AbortSignal): Promise<Molecule[]> {
+        return this.fromPubChemSearch('name', name, signal);
     }
 
-    public static async fromFormula(formula: string): Promise<Molecule[]> {
-        return this.fromPubChemSearch('fastformula', formula);
+    public static async fromFormula(formula: string, signal?: AbortSignal): Promise<Molecule[]> {
+        return this.fromPubChemSearch('fastformula', formula, signal);
     }
 
-    public static async fromSemiFormula(semiFormula: string): Promise<Molecule[]> {
-        return this.fromPubChemSearch('fastformula', semiFormula); // Best approximation for PubChem
+    public static async fromSemiFormula(semiFormula: string, signal?: AbortSignal): Promise<Molecule[]> {
+        return this.fromPubChemSearch('fastformula', semiFormula, signal); // Best approximation for PubChem
     }
 
-    public static async fromAny(query: string | number): Promise<Molecule[]> {
+    public static async fromAny(query: string | number, signal?: AbortSignal): Promise<Molecule[]> {
         const qStr = String(query);
         // Try Cache first
         if (this.cache.get(qStr)) return [this.cache.get(qStr)!];
 
-        // 1. Try Formula/Semi-Formula search FIRST (especially if it looks like a formula)
-        // This addresses user request to prioritize formulas before falling back to SMILES.
-        let results = await this.fromFormula(qStr);
+        // 1. Try Formula/Semi-Formula search FIRST
+        let results = await this.fromFormula(qStr, signal);
         if (results.length > 0) return results;
 
-        results = await this.fromSemiFormula(qStr);
+        results = await this.fromSemiFormula(qStr, signal);
         if (results.length > 0) return results;
 
         // 2. Try Name search
-        results = await this.fromName(qStr);
+        results = await this.fromName(qStr, signal);
         if (results.length > 0) return results;
 
         // 3. Fallback: try to construct directly if it looks like SMILES
@@ -192,7 +191,7 @@ export class Molecule {
 
     // --- PubChem Fetching Logic ---
 
-    private static async fromPubChemSearch(domain: string, query: string): Promise<Molecule[]> {
+    private static async fromPubChemSearch(domain: string, query: string, signal?: AbortSignal): Promise<Molecule[]> {
 
         const queryL = query.toLowerCase();
         const mockMatch = QUICK_DB.find(m => 
@@ -212,9 +211,9 @@ export class Molecule {
             return [m];
         }
 
-        const url = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/${domain}/${encodeURIComponent(query)}/property/CanonicalSMILES,IsomericSMILES,ConnectivitySMILES,IUPACName,MolecularWeight/JSON`;
+        const url = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/${domain}/${encodeURIComponent(query)}/property/CanonicalSMILES,IsomericSMILES,ConnectivitySMILES,IUPACName,MolecularWeight,Title/JSON`;
         try {
-            const res = await fetch(url);
+            const res = await fetch(url, { signal });
             if (!res.ok) return [];
             const data = await res.json();
             const results: Molecule[] = [];
@@ -233,6 +232,7 @@ export class Molecule {
                 // Update properties from PubChem
                 mol.cid = prop.CID;
                 mol.iupac = prop.IUPACName || mol.iupac;
+                mol.name = prop.Title || mol.name;
                 mol.molWeight = parseFloat(prop.MolecularWeight) || mol.molWeight;
                 mol.link = `https://pubchem.ncbi.nlm.nih.gov/compound/${mol.cid}`;
                 mol.fetched = true; // Mark as fetched to prevent recursion
@@ -246,6 +246,7 @@ export class Molecule {
             }
             return results;
         } catch (e) {
+            if ((e as any).name === 'AbortError') throw e;
             return [];
         }
     }
@@ -361,7 +362,7 @@ export class Molecule {
             } else if (token === ')') {
                 if (stack.length > 0) prevAtomId = stack.pop()!;
                 continue;
-            } else if (/\d/.test(token)) {
+            } else if (/^[1-9]$/.test(token)) {
                 const ringNum = parseInt(token);
                 if (ringClosures.has(ringNum)) {
                     const target = ringClosures.get(ringNum)!;
@@ -473,7 +474,11 @@ export class Molecule {
                 if (bond.source === atom.id || bond.target === atom.id) currentValence += bond.order;
             }
             const expectedValence = valences[atom.element] || 0;
-            const hNeeded = Math.max(0, Math.round(expectedValence - currentValence - Math.abs(atom.charge)));
+            // If it's a lone atom and has explicit H defined (like [O] or [C]), we honor that.
+            // Otherwise, we calculate implicit hydrogens to satisfy valence (like 'O' becoming H2O).
+            const hNeeded = (currentValence === 0 && (atom as any)._hasExplicitH) 
+                ? 0 
+                : Math.max(0, Math.round(expectedValence - currentValence - Math.abs(atom.charge)));
             atom.implicitHydrogens = hNeeded;
             totalH += hNeeded;
         }

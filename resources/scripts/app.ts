@@ -4,13 +4,13 @@ import '@/styles/app.css'
 
 // ── Configure curtain with chemistry-themed messages ──
 const curtain = useCurtain({
-  icon: 'PhAtom',
+  icon: 'PhCube',
   inspirationalMessages: [
-    { message: 'Aligning molecular orbitals…', background: '' },
-    { message: 'Calibrating bond energies…', background: '' },
-    { message: 'Ionizing the reaction chamber…', background: '' },
-    { message: 'Heating the catalyst to operating temperature…', background: '' },
-    { message: 'Balancing redox equations…', background: '' },
+    { message: 'Element is a purely functional chemistry engine.', background: '' },
+    { message: 'Everything is a molecule; every reaction is a transformation.', background: '' },
+    { message: 'No canned animations—all bond formations are real-time simulation.', background: '' },
+    { message: 'Built for exploration, from basic combustion to esterification.', background: '' },
+    { message: 'Open source and designed to be embedded anywhere.', background: '' },
   ],
 })
 
@@ -23,7 +23,7 @@ router.get('/about', () => page('About'))
 
 // ── Create app ──
 createFictifApp({
-  appName: 'ELM',
+  appName: 'Element',
 });
 
 

@@ -6,7 +6,7 @@
       <!-- Title -->
       <div class="menu-title-group">
         <h1 class="menu-title">
-          <span class="menu-title__iso">EL</span><span class="menu-title__mer">M</span>
+          <span class="menu-title__iso">Ele</span><span class="menu-title__mer">ment</span>
         </h1>
         <p class="menu-subtitle">Element: The Core Chemistry Library</p>
       </div>

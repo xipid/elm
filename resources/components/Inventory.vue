@@ -73,6 +73,9 @@
               @dragover.prevent
               @drop.stop="onDrop(index)"
               @dragend="onDragEnd"
+              @touchstart.passive="onTouchStart(index, $event)"
+              @touchmove.prevent="onTouchMove($event)"
+              @touchend="onTouchEnd(index, $event)"
             >
               <div v-if="slot.item" class="inventory__item">
                 <template v-if="slot.item.moleculeData">
@@ -164,19 +167,30 @@ const overlayRef = ref<HTMLElement>()
 const searchQuery = ref('')
 const searchResults = ref<any[]>([])
 let searchTimeout: any = null
+let searchAbortController: AbortController | null = null
 
 watch(searchQuery, (q) => {
   clearTimeout(searchTimeout)
+  if (searchAbortController) {
+    searchAbortController.abort()
+  }
+  
   if (!q.trim()) {
     searchResults.value = []
     return
   }
+  
   searchTimeout = setTimeout(async () => {
+    searchAbortController = new AbortController()
     try {
-      const molecules = await Molecule.fromAny(q)
+      const molecules = await Molecule.fromAny(q, searchAbortController.signal)
       searchResults.value = molecules.slice(0, 6).map(m => m.toMoleculeData())
     } catch (e) {
-      searchResults.value = []
+      if ((e as any).name !== 'AbortError') {
+        searchResults.value = []
+      }
+    } finally {
+      searchAbortController = null
     }
   }, 300)
 })
@@ -201,7 +215,11 @@ const transformStyle = computed(() => ({
 }))
 
 function onPointerDown(e: PointerEvent) {
-  if ((e.target as HTMLElement).closest('.inventory__slot') || (e.target as HTMLElement).closest('.inventory-hud')) return
+  const target = e.target as HTMLElement
+  if (target.closest('.inventory__slot') || 
+      target.closest('.inventory-hud') || 
+      target.closest('.inventory-research-area') || 
+      target.closest('.inventory-isomers')) return
   isDraggingSpace = true
   lastMouse = { x: e.clientX, y: e.clientY }
   ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
@@ -244,6 +262,9 @@ function onResultDragStart(mol: any, event: DragEvent) {
   draggedResult.value = mol
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'copy'
+    // Ensure the whole card is used as the drag image
+    const card = (event.currentTarget as HTMLElement)
+    event.dataTransfer.setDragImage(card, card.offsetWidth / 2, card.offsetHeight / 2)
   }
 }
 
@@ -287,6 +308,48 @@ function onDragEnd() {
   dragIndex.value = null
   draggedResult.value = null
 }
+
+// Touch Handling for Mobile Drag/Drop
+let touchDragIndex: number | null = null;
+let touchStartX = 0;
+let touchStartY = 0;
+
+function onTouchStart(index: number, e: TouchEvent) {
+  if (state.slots[index].item === null) return;
+  touchDragIndex = index;
+  dragIndex.value = index;
+  const touch = e.touches[0];
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
+}
+
+function onTouchMove(e: TouchEvent) {
+  if (touchDragIndex === null) return;
+  // Visual feedback could be added here if needed, but for now we just track completion
+}
+
+function onTouchEnd(index: number, e: TouchEvent) {
+  if (touchDragIndex === null) return;
+  
+  const touch = e.changedTouches[0];
+  const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+  const slotEl = targetEl?.closest('.inventory__slot');
+  const binEl = targetEl?.closest('.island-bin');
+
+  if (binEl) {
+    onDropBin();
+  } else if (slotEl) {
+    // Find the index of the slot element
+    const allSlots = Array.from(document.querySelectorAll('.inventory__slot'));
+    const targetIdx = allSlots.indexOf(slotEl as any);
+    if (targetIdx !== -1) {
+      onDrop(targetIdx);
+    }
+  }
+
+  touchDragIndex = null;
+  dragIndex.value = null;
+}
 </script>
 
 <style scoped>
@@ -306,6 +369,8 @@ function onDragEnd() {
   align-items: center;
   justify-content: center;
   touch-action: none; /* prevent browser panning */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .inventory-grid-wrapper {

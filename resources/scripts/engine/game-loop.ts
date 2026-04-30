@@ -26,8 +26,8 @@ export function useGameLoop() {
     const selectedItem = inventory.currentItem.value
 
     return actions.filter(action => {
-      if (action.id === 'spawn' || action.id === 'fullscreen') return true
-      if (action.id === 'drop_molecule') return !!selectedItem?.moleculeData
+      if (action.id === 'fullscreen') return true
+      if (action.id === 'drop_molecule' || action.id === 'inventory') return !!selectedItem?.moleculeData || action.id === 'inventory'
       if (['absorb', 'release', 'rotate'].includes(action.id)) {
         return !!hovered || heldActions.value.includes(action.id)
       }

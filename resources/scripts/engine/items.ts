@@ -47,13 +47,6 @@ export function getAllItems(): Item[] {
 export function getGlobalActions(): ItemAction[] {
   return [
     {
-      id: 'spawn',
-      icon: 'PhPlusCircle',
-      title: 'Spawn',
-      description: 'Spawn a molecule using IUPAC nomenclature.',
-      triggerDescription: 'Hold / Click / Press I',
-    },
-    {
       id: 'drop_molecule',
       icon: 'PhDrop',
       title: 'Drop',
@@ -80,6 +73,13 @@ export function getGlobalActions(): ItemAction[] {
       title: 'Release',
       description: 'Release energy into a molecule.',
       triggerDescription: 'Hold Z & Click / Right Click',
+    },
+    {
+      id: 'inventory',
+      icon: 'PhHandbag',
+      title: 'Inventory',
+      description: 'Open your molecular inventory.',
+      triggerDescription: 'Click or Press E',
     },
     {
       id: 'fullscreen',

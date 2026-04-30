@@ -2,7 +2,14 @@
   <div class="trailer-page" ref="pageRef">
     <!-- Fixed layers -->
     <TrailerBackground />
-    <TrailerProgress :val="progress" :isPaused="isPaused" @toggle="toggleAutoScroll" />
+    
+    <!-- Controls Group -->
+    <div class="about-controls">
+      <a href="/" class="about-skip" title="Skip">
+        <PhCaretDoubleLeft :size="22" weight="bold" />
+      </a>
+      <TrailerProgress :val="progress" :isPaused="isPaused" @toggle="toggleAutoScroll" />
+    </div>
 
     <!-- Cinema letterbox bars -->
     <div class="cinema-bar top"></div>
@@ -35,6 +42,7 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import gsap from 'gsap'
 import ScrollTrigger from 'gsap/ScrollTrigger'
+import { PhCaretDoubleLeft } from '@phosphor-icons/vue'
 
 import TrailerBackground from '@/components/about/TrailerBackground.vue'
 import TrailerProgress from '@/components/about/TrailerProgress.vue'
@@ -142,6 +150,29 @@ onUnmounted(() => {
 }
 .cinema-bar.top { top: 0; }
 .cinema-bar.bottom { bottom: 0; }
+
+.about-controls {
+  position: fixed;
+  top: 32px;
+  left: 32px;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.about-skip {
+  color: rgba(255, 255, 255, 0.4);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.about-skip:hover {
+  color: #fff;
+  transform: translateX(-4px);
+}
 
 .scanlines {
   position: fixed;

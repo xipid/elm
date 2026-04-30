@@ -263,7 +263,8 @@ function onPointerDown(e: PointerEvent) {
   activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY })
   
   // Ignore world-space interaction for HUD/Inventory
-  if ((e.target as HTMLElement).closest('.game-hud') || (e.target as HTMLElement).closest('.inventory-overlay')) {
+  const target = e.target as HTMLElement
+  if (target.closest('.game-hud') || target.closest('.inventory-overlay') || target.closest('.fictif-snack-manager')) {
     isClickPotential = false
     return
   }
@@ -394,18 +395,6 @@ function onPointerMove(e: PointerEvent) {
 
 function onPointerUp(e: PointerEvent) {
   const ptr = activePointers.get(e.pointerId)
-  if (ptr && e.pointerType === 'touch') {
-     const dy = ptr.startY - e.clientY
-     const dx = Math.abs(ptr.startX - e.clientX)
-     // swipe up check: significant Y delta, small X delta, started in bottom half
-     if (dy > 60 && dx < 100 && ptr.startY > window.innerHeight * 0.5) {
-         inventory.openInventory()
-         activePointers.delete(e.pointerId)
-         space.state.draggedObjectUid = null
-         isDragging = false
-         return
-     }
-  }
   
   const touchWasActive = ptr && e.pointerType === 'touch'
   activePointers.delete(e.pointerId)
@@ -533,8 +522,8 @@ function onPointerUp(e: PointerEvent) {
 
 .game-hud__top-left {
   position: absolute;
-  top: 16px;
-  left: 16px;
+  top: 24px;
+  left: 24px;
 }
 
 .game-hud__back {
@@ -595,40 +584,39 @@ function onPointerUp(e: PointerEvent) {
   position: absolute;
   top: 16px;
   right: 16px;
-  padding: 16px 20px;
-  border-radius: 20px;
-  background: rgba(7, 7, 15, 0.9);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  min-width: 220px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(7, 7, 15, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  min-width: 160px;
+  max-width: 200px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-  z-index: 1000; /* Ensure it stays on top */
+  gap: 4px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
 }
 
 .game-hud__object-name {
   color: var(--color-text-primary);
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 800;
   text-transform: capitalize;
-  letter-spacing: 0.02em;
 }
 
 .game-hud__object-subname {
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
-  margin-top: -6px;
-  margin-bottom: 4px;
+  margin-top: -2px;
 }
 
 .game-hud__object-details {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
+  gap: 2px;
+  font-size: 11px;
   color: var(--color-text-secondary);
 }
 
@@ -649,8 +637,8 @@ function onPointerUp(e: PointerEvent) {
 
 .game-hud__bottom-right {
   position: absolute;
-  bottom: 16px;
-  right: 16px;
+  bottom: 24px;
+  right: 24px;
 }
 
 </style>

@@ -19,10 +19,10 @@ const { anim } = useScrollAnim()
 const T = '.scene-credits'
 
 const students = [
-  "Aiche Malak Nour El Houda", "Merzoug Abderrahmane", "Ababsa Mouaki Nour El Hidaya",
-  "Nacer Bouhadjam Wiam", "Benabid Soumia", "Benmohamed Youssef",
+  "Aiche Malak Nour El Houda", "Merzoug Abderrahmene", "Ababsa Mouaki Nour El Hidaya",
+  "Nacer Bouhadjam Wiam", "Benabid Soumia", "Benmohammed Youssef",
   "Djeba Imad Eddine", "Belbacha Abdeljalil", "Barour Fares",
-  "Amghachouch Mayar", "Zerouni Sara", "Benabderrahmane Rostom"
+  "Ameghchouche Mayar", "Zerouni Sara", "Benabderrahmane Rostom", "Khioani Raid"
 ]
 
 onMounted(() => {

@@ -8,7 +8,7 @@
       <div class="finale-identity">
         <PhAtom :size="64" weight="thin" class="finale-icon" />
         <h1 class="finale-name">
-          <span class="finale-letter" v-for="(l, i) in 'ELM'.split('')" :key="i">{{ l }}</span>
+          <span class="finale-letter" v-for="(l, i) in 'ELEMENT'.split('')" :key="i">{{ l }}</span>
         </h1>
         <p class="finale-license">Released under the Apache 2.0 License</p>
       </div>
@@ -39,32 +39,32 @@ onMounted(() => {
   anim('.finale-blackout',
     { opacity: 0 },
     { opacity: 1 },
-    { trigger: T, start: 'top 95%', end: 'top 55%' }
+    { trigger: T, start: 'top bottom', end: 'top center' }
   )
   anim('.finale-icon',
     { opacity: 0, scale: 0.2, rotation: -180 },
     { opacity: 0.9, scale: 1, rotation: 0 },
-    { trigger: T, start: 'top 60%', end: 'top 20%' }
+    { trigger: T, start: 'top 50%', end: 'top 10%' }
   )
   anim('.finale-letter',
     { opacity: 0, y: 30 },
     { opacity: 1, y: 0, stagger: 0.15 },
-    { trigger: T, start: 'top 40%', end: 'top 10%' }
+    { trigger: T, start: 'top 30%', end: 'top 0%' }
   )
   anim('.finale-license',
     { opacity: 0 },
     { opacity: 0.4 },
-    { trigger: T, start: 'top 20%', end: 'top 0%' }
+    { trigger: T, start: 'top 10%', end: 'top -20%' }
   )
   anim('.finale-content',
     { opacity: 0, visibility: 'hidden' },
     { opacity: 1, visibility: 'visible' },
-    { trigger: T, start: 'top 80%', end: 'top 40%' }
+    { trigger: T, start: 'top 70%', end: 'top 30%' }
   )
   anim('.finale-actions',
     { opacity: 0, y: 60 },
     { opacity: 1, y: 0 },
-    { trigger: T, start: 'top 10%', end: 'center center' }
+    { trigger: T, start: 'center bottom', end: 'center center' }
   )
 })
 </script>

@@ -22,7 +22,7 @@ import { useScrollAnim } from '@/composables/useScrollAnim'
 const { anim } = useScrollAnim()
 const T = '.scene-hero'
 const words = ['DISCOVER', 'THE', 'UNSEEN']
-const tagline = 'ELM : THE NEXT FRONTIER OF CHEMICAL SIMULATION'.split('')
+const tagline = 'ELEMENT : THE NEXT FRONTIER OF CHEMICAL SIMULATION'.split('')
 onMounted(() => {
   anim('.hero-letter', { opacity: 0, y: 80, rotateX: -90, scale: 0.5 }, { opacity: 1, y: 0, rotateX: 0, scale: 1, stagger: 0.03 }, { trigger: T, start: 'top 80%', end: 'top 20%' })
   anim('.hero-line', { scaleX: 0 }, { scaleX: 1 }, { trigger: T, start: 'top 50%', end: 'top 20%' })

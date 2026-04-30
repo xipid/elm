@@ -24,7 +24,7 @@ export default defineConfig(({ command, mode }) => {
           entry: path.resolve(__dirname, 'src/index.ts'),
           name: 'ELM',
           fileName: 'index',
-          formats: ['es'], 
+          formats: ['es'],
         },
         minify: 'terser',
         terserOptions: {
@@ -40,7 +40,7 @@ export default defineConfig(({ command, mode }) => {
         },
       },
       plugins: [
-        dts({ 
+        dts({
           insertTypesEntry: true,
           include: ['src/**/*.ts'],
           outDir: 'dist',
@@ -110,7 +110,17 @@ export default defineConfig(({ command, mode }) => {
         'elm': path.resolve(__dirname, './src'),
       },
     },
+    optimizeDeps: {
+      esbuildOptions: {
+        // This tells esbuild to allow top-level await during dependency optimization
+        target: 'esnext',
+        supported: {
+          'top-level-await': true
+        },
+      },
+    },
     build: {
+
       target: 'esnext',
       minify: 'terser',
       chunkSizeWarningLimit: 3000, // Increase limit for scientific engines

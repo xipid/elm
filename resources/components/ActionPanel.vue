@@ -1,5 +1,5 @@
 <template>
-  <div class="action-panel">
+  <div class="action-panel" @pointerdown.stop @mousedown.stop @touchstart.stop>
     <TransitionGroup name="action-list">
       <button
         v-for="action in availableActions"
@@ -33,12 +33,11 @@ import * as PhIcons from '@phosphor-icons/vue'
 const gameLoop = useGameLoop()
 const inventory = useInventory()
 const space = useSpace()
-const { heldActions, availableActions, openIupacSpawner } = gameLoop
+const { heldActions, availableActions } = gameLoop
 
 function isDefault(id: string) {
   const item = inventory.currentItem.value
   if (item?.moleculeData && id === 'drop_molecule') return true
-  if (!item && id === 'spawn') return true
   return false
 }
 
@@ -47,8 +46,15 @@ function getIconComponent(iconName: string) {
 }
 
 function onPointerDown(id: string) {
-  if (id === 'spawn') {
-    openIupacSpawner(space.state.pointerWorldPosition.x, space.state.pointerWorldPosition.z)
+  if (id === 'inventory') {
+    inventory.toggleInventory()
+    return
+  }
+  if (id === 'drop_molecule') {
+    const item = inventory.currentItem.value
+    if (item?.moleculeData) {
+      gameLoop.handleEmptyClick(space.state.pointerWorldPosition)
+    }
     return
   }
   if (id === 'fullscreen') {
@@ -76,7 +82,7 @@ function onPointerDown(id: string) {
 }
 
 function onPointerUp(id: string) {
-  if (id === 'spawn') return
+  if (id === 'inventory' || id === 'drop_molecule' || id === 'fullscreen') return
   const idx = heldActions.value.indexOf(id)
   if (idx !== -1) {
     heldActions.value.splice(idx, 1)
@@ -88,14 +94,16 @@ function onPointerUp(id: string) {
 .action-panel {
   display: flex;
   flex-direction: column-reverse;
-  gap: 12px;
+  gap: 8px;
   pointer-events: auto;
+  margin-right: 12px;
+  margin-bottom: 12px;
 }
 
 .action-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
   background: rgba(18, 18, 42, 0.7);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(139, 92, 246, 0.2);

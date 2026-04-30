@@ -5,7 +5,7 @@
         <h2 class="opensource-title">OPEN FOR ALL</h2>
       </div>
       <p class="opensource-desc">
-        Project ELM is open-source. We believe in the power of shared
+        Project Element is open-source. We believe in the power of shared
         knowledge to push the boundaries of scientific simulation.
       </p>
     </div>

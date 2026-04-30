@@ -1,6 +1,6 @@
 // ester.test.ts
 import { expect, test, describe, beforeAll } from "bun:test";
-import { Molecule } from "../src/molecule";
+import { Molecule, MoleculeInstance } from "../src/molecule";
 import { doReaction } from "../src/reaction";
 
 
@@ -16,12 +16,12 @@ describe("🧪 Advanced Chemistry Engine Features", () => {
         expect(formicAcid.name).toBe("Formic Acid");
         expect(decanol.name).toBe("Decanol");
 
-        const beaker = new Map<Molecule, number>();
-        beaker.set(formicAcid, 100);
-        beaker.set(decanol, 100);
-
+        const beaker: MoleculeInstance[] = [
+            { type: formicAcid, heatEnergy: 100 },
+            { type: decanol, heatEnergy: 100 }
+        ];
         const products = doReaction(beaker);
-        const productMols = Array.from(products.keys());
+        const productMols = products.map(inst => inst.type);
 
         const ester = productMols.find(m => m.name.includes("Decyl"));
         expect(ester).toBeDefined();
@@ -35,12 +35,12 @@ describe("🧪 Advanced Chemistry Engine Features", () => {
         const mg = mgResults[0];
         const hcl = hclResults[0];
 
-        const beaker = new Map<Molecule, number>();
-        beaker.set(mg, 50);
-        beaker.set(hcl, 50);
-
+        const beaker: MoleculeInstance[] = [
+            { type: mg, heatEnergy: 50 },
+            { type: hcl, heatEnergy: 50 }
+        ];
         const products = doReaction(beaker);
-        const names = Array.from(products.keys()).map(m => m.name);
+        const names = products.map(inst => inst.type.name);
 
         expect(names).toContain("Magnesium Chloride");
         expect(names).toContain("Hydrogen Gas");
@@ -50,11 +50,11 @@ describe("🧪 Advanced Chemistry Engine Features", () => {
         const hclResults = await Molecule.fromName("Hydrochloric Acid");
         const hcl = hclResults[0];
 
-        const beaker = new Map<Molecule, number>();
-        beaker.set(hcl, 200); // High energy triggers ionization
-
+        const beaker: MoleculeInstance[] = [
+            { type: hcl, heatEnergy: 200 }
+        ];
         const products = doReaction(beaker);
-        const formulas = Array.from(products.keys()).map(m => m.formula);
+        const formulas = products.map(inst => inst.type.formula);
 
         expect(formulas).toContain("H"); // H+
         expect(formulas).toContain("Cl"); // Cl-

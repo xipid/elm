@@ -29,9 +29,10 @@ onMounted(() => {
     scrollTrigger: {
       trigger: T,
       scroller: S,
-      start: 'top bottom',
+      start: 'top top',
       end: 'bottom top',
       scrub: 1,
+      pin: true,
       invalidateOnRefresh: true,
     }
   })
