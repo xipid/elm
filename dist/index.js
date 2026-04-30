@@ -256,26 +256,26 @@ const _Molecule = class _Molecule {
     this.cache.delete(tempKey);
     return results[0] || mol;
   }
-  static async fromName(name) {
-    return this.fromPubChemSearch("name", name);
+  static async fromName(name, signal) {
+    return this.fromPubChemSearch("name", name, signal);
   }
-  static async fromFormula(formula) {
-    return this.fromPubChemSearch("fastformula", formula);
+  static async fromFormula(formula, signal) {
+    return this.fromPubChemSearch("fastformula", formula, signal);
   }
-  static async fromSemiFormula(semiFormula) {
-    return this.fromPubChemSearch("fastformula", semiFormula);
+  static async fromSemiFormula(semiFormula, signal) {
+    return this.fromPubChemSearch("fastformula", semiFormula, signal);
   }
-  static async fromAny(query) {
+  static async fromAny(query, signal) {
     const qStr = String(query);
     if (this.cache.get(qStr)) return [this.cache.get(qStr)];
-    let results = await this.fromFormula(query);
+    let results = await this.fromFormula(qStr, signal);
     if (results.length > 0) return results;
-    results = await this.fromSemiFormula(query);
+    results = await this.fromSemiFormula(qStr, signal);
     if (results.length > 0) return results;
-    results = await this.fromName(query);
+    results = await this.fromName(qStr, signal);
     if (results.length > 0) return results;
     try {
-      const m = await this.fromSmiles(query);
+      const m = await this.fromSmiles(qStr);
       return [m];
     } catch {
       return [];
@@ -295,7 +295,7 @@ const _Molecule = class _Molecule {
     return mol;
   }
   // --- PubChem Fetching Logic ---
-  static async fromPubChemSearch(domain, query) {
+  static async fromPubChemSearch(domain, query, signal) {
     const queryL = query.toLowerCase();
     const mockMatch = QUICK_DB.find(
       (m) => m.name.toLowerCase() === queryL || m.formula === query || m.fastFormula === query
@@ -310,9 +310,9 @@ const _Molecule = class _Molecule {
       m.fetched = true;
       return [m];
     }
-    const url = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/${domain}/${encodeURIComponent(query)}/property/CanonicalSMILES,IsomericSMILES,ConnectivitySMILES,IUPACName,MolecularWeight/JSON`;
+    const url = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/${domain}/${encodeURIComponent(query)}/property/CanonicalSMILES,IsomericSMILES,ConnectivitySMILES,IUPACName,MolecularWeight,Title/JSON`;
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { signal });
       if (!res.ok) return [];
       const data = await res.json();
       const results = [];
@@ -327,6 +327,7 @@ const _Molecule = class _Molecule {
         }
         mol.cid = prop.CID;
         mol.iupac = prop.IUPACName || mol.iupac;
+        mol.name = prop.Title || mol.name;
         mol.molWeight = parseFloat(prop.MolecularWeight) || mol.molWeight;
         mol.link = `https://pubchem.ncbi.nlm.nih.gov/compound/${mol.cid}`;
         mol.fetched = true;
@@ -336,6 +337,7 @@ const _Molecule = class _Molecule {
       }
       return results;
     } catch (e) {
+      if (e.name === "AbortError") throw e;
       return [];
     }
   }
@@ -446,7 +448,7 @@ const _Molecule = class _Molecule {
       } else if (token === ")") {
         if (stack.length > 0) prevAtomId = stack.pop();
         continue;
-      } else if (/\d/.test(token)) {
+      } else if (/^[1-9]$/.test(token)) {
         const ringNum = parseInt(token);
         if (ringClosures.has(ringNum)) {
           const target = ringClosures.get(ringNum);
@@ -550,7 +552,7 @@ const _Molecule = class _Molecule {
         if (bond.source === atom.id || bond.target === atom.id) currentValence += bond.order;
       }
       const expectedValence = valences[atom.element] || 0;
-      const hNeeded = Math.max(0, Math.round(expectedValence - currentValence - Math.abs(atom.charge)));
+      const hNeeded = currentValence === 0 && atom._hasExplicitH ? 0 : Math.max(0, Math.round(expectedValence - currentValence - Math.abs(atom.charge)));
       atom.implicitHydrogens = hNeeded;
       totalH += hNeeded;
     }
@@ -889,37 +891,60 @@ const doReaction = (instances) => {
   const molB = mols[1];
   const wrapProducts = (productMols) => {
     const finalMols = conserveAtoms(mols, productMols);
+    finalMols.forEach((m) => nameMolecule(m));
     const energyPerInstance = totalEnergy / finalMols.length;
     return finalMols.map((m) => ({ type: m, heatEnergy: energyPerInstance }));
   };
   const oxidants = validInstances.filter((inst) => inst.type.formula === "O2" || inst.type.formula === "O");
   const fuels = validInstances.filter(
-    (inst) => !oxidants.includes(inst) && Array.from(inst.type.model.atoms.values()).every((a) => ["C", "H", "O"].includes(a.element)) && inst.type.model.atoms.size > 0
+    (inst) => !oxidants.includes(inst) && Array.from(inst.type.model.atoms.values()).every((a) => ["C", "H", "O"].includes(a.element)) && inst.type.model.atoms.size > 0 && inst.type.formula !== "H2O"
+    // Water is not a fuel
   );
-  if (fuels.length > 0 && oxidants.length > 0 && totalEnergy > 400) {
+  if (fuels.length > 0 && oxidants.length > 0 && totalEnergy > 50) {
     const totalC = fuels.reduce((sum, f) => sum + Array.from(f.type.model.atoms.values()).filter((a) => a.element === "C").length, 0);
     const totalH = fuels.reduce((sum, f) => sum + Array.from(f.type.model.atoms.values()).filter((a) => a.element === "H").length, 0);
     const totalO = instances.reduce((sum, inst) => sum + Array.from(inst.type.model.atoms.values()).filter((a) => a.element === "O").length, 0);
     const products = [];
     let remainingO = totalO;
     const waterToMake = Math.min(totalH / 2, remainingO);
-    for (let j = 0; j < Math.floor(waterToMake); j++) products.push(Molecule.fromSmilesSync("O"));
+    for (let j = 0; j < Math.floor(waterToMake); j++) {
+      const m = Molecule.fromSmilesSync("O");
+      m.name = "Water";
+      products.push(m);
+    }
     remainingO -= Math.floor(waterToMake);
     if (remainingO >= totalC * 2) {
-      for (let i = 0; i < totalC; i++) products.push(Molecule.fromSmilesSync("O=C=O"));
+      for (let i = 0; i < totalC; i++) {
+        const m = Molecule.fromSmilesSync("O=C=O");
+        m.name = "Carbon dioxide";
+        products.push(m);
+      }
       remainingO -= totalC * 2;
     } else if (remainingO >= totalC) {
-      for (let i = 0; i < totalC; i++) products.push(Molecule.fromSmilesSync("[C-]#[O+]"));
+      for (let i = 0; i < totalC; i++) {
+        const m = Molecule.fromSmilesSync("[C-]#[O+]");
+        m.name = "Carbon monoxide";
+        products.push(m);
+      }
       remainingO -= totalC;
     } else {
-      for (let i = 0; i < totalC; i++) products.push(Molecule.fromSmilesSync("[C]"));
+      for (let i = 0; i < totalC; i++) {
+        const m = Molecule.fromSmilesSync("[C]");
+        m.name = "Soot";
+        products.push(m);
+      }
     }
     return wrapProducts(products);
   }
-  if (mols.length >= 1 && mols.every((m) => m.formula === "H2O") && totalEnergy > 1e3) {
+  if (mols.length >= 1 && mols.every((m) => m.formula === "H2O") && totalEnergy > 150) {
     const h3o = Molecule.fromSmilesSync("[OH3+]");
+    h3o.name = "Hydronium";
     const oh = Molecule.fromSmilesSync("[OH-]");
+    oh.name = "Hydroxide";
     return wrapProducts([h3o, oh]);
+  }
+  if (mols.length === 2 && (molA.smiles === "[OH3+]" && molB.smiles === "[OH-]" || molA.smiles === "[OH-]" && molB.smiles === "[OH3+]")) {
+    return wrapProducts([Molecule.fromSmilesSync("O"), Molecule.fromSmilesSync("O")]);
   }
   if (mols.length >= 2) {
     const fA = molA.formula;
@@ -928,20 +953,8 @@ const doReaction = (instances) => {
     if (fA === "H" && fB === "H") return wrapProducts([Molecule.fromSmilesSync("[H][H]")]);
     if (fA === "O" && fB === "O") return wrapProducts([Molecule.fromSmilesSync("O=O")]);
     if (fA === "C" && fB === "O") return wrapProducts([Molecule.fromSmilesSync("[C-]#[O+]")]);
-  }
-  if (totalEnergy > 800) {
-    if (molA.formula === "O2") return wrapProducts([Molecule.fromSmilesSync("[O]"), Molecule.fromSmilesSync("[O]")]);
-    if (molA.formula === "H2") return wrapProducts([Molecule.fromSmilesSync("[H]"), Molecule.fromSmilesSync("[H]")]);
-    if (molA.model.atoms.size > 5) {
-      const atoms = Array.from(molA.model.atoms.values());
-      const cAtoms = atoms.filter((a) => a.element === "C");
-      if (cAtoms.length >= 2) {
-        const splitIdx = Math.floor(cAtoms.length / 2);
-        const frag1 = Molecule.fromSmilesSync("C".repeat(splitIdx));
-        const frag2 = Molecule.fromSmilesSync("C".repeat(cAtoms.length - splitIdx));
-        return wrapProducts([frag1, frag2]);
-      }
-    }
+    if (fA === "C" && fB === "O2") return wrapProducts([Molecule.fromSmilesSync("O=C=O")]);
+    if (fA === "OH" && fB === "OH") return wrapProducts([Molecule.fromSmilesSync("OO")]);
   }
   if (mols.length === 2) {
     if (molA.model.groups.carboxylicAcid && molB.model.groups.alcohol) return wrapInstances(generateEsterification(molA, molB, totalEnergy));
@@ -952,37 +965,72 @@ const doReaction = (instances) => {
     if (molA.model.groups.ester && isStrongBase(molB)) return wrapInstances(generateSaponification(molA, molB, totalEnergy));
     if (molB.model.groups.ester && isStrongBase(molA)) return wrapInstances(generateSaponification(molB, molA, totalEnergy));
   }
+  if (totalEnergy > 100) {
+    if (molA.formula === "O2") return wrapProducts([Molecule.fromSmilesSync("[O]"), Molecule.fromSmilesSync("[O]")]);
+    if (molA.formula === "H2") return wrapProducts([Molecule.fromSmilesSync("[H]"), Molecule.fromSmilesSync("[H]")]);
+    if (molA.formula === "H2O2") return wrapProducts([Molecule.fromSmilesSync("[OH]"), Molecule.fromSmilesSync("[OH]")]);
+    if (molA.model.atoms.size > 3) {
+      const atoms = Array.from(molA.model.atoms.values());
+      const cAtoms = atoms.filter((a) => a.element === "C");
+      if (cAtoms.length >= 2) {
+        const splitIdx = Math.floor(cAtoms.length / 2);
+        const frag1 = Molecule.fromSmilesSync("C".repeat(splitIdx));
+        const frag2 = Molecule.fromSmilesSync("C".repeat(cAtoms.length - splitIdx));
+        return wrapProducts([frag1, frag2]);
+      }
+    }
+  }
   return instances;
 };
 function wrapInstances(map) {
   const results = [];
   for (const [m, e] of map.entries()) {
+    nameMolecule(m);
     results.push({ type: m, heatEnergy: e });
   }
   return results;
 }
+function nameMolecule(m) {
+  if (m.name) return;
+  const s = m.smiles;
+  if (s === "O") m.name = "Water";
+  else if (s === "O=C=O") m.name = "Carbon dioxide";
+  else if (s === "[C-]#[O+]") m.name = "Carbon monoxide";
+  else if (s === "[C]") m.name = "Soot";
+  else if (s === "[OH3+]") m.name = "Hydronium";
+  else if (s === "[OH-]") m.name = "Hydroxide";
+  else if (s === "O=O") m.name = "Oxygen gas";
+  else if (s === "[H][H]") m.name = "Hydrogen gas";
+  else if (s === "OO") m.name = "Hydrogen peroxide";
+  else if (s === "CO") m.name = "Methanol";
+  else if (s === "CCO") m.name = "Ethanol";
+  else if (s === "CCCO") m.name = "Propanol";
+  else if (s === "CC(=O)O") m.name = "Acetic acid";
+  else if (s === "CCC(=O)O") m.name = "Propanoic acid";
+  else if (s === "C(=O)O") m.name = "Formic acid";
+}
 function generateEsterification(acid, alcohol, energy) {
   const pMap = /* @__PURE__ */ new Map();
-  let acidRadical = acid.smiles.replace(/C\(=O\)OH$/, "C(=O)");
-  if (acidRadical === acid.smiles) acidRadical = acid.smiles.replace(/\(=O\)O$/, "(=O)");
-  if (acidRadical === acid.smiles) acidRadical = acid.smiles.replace("(=O)OH", "(=O)");
-  let alcRadical = alcohol.smiles.replace(/O$/, "");
-  if (alcRadical === alcohol.smiles) alcRadical = alcohol.smiles.replace("O", "");
+  const acidMatch = acid.smiles.match(/^(.*)C\(=O\)O$/) || acid.smiles.match(/^(.*)C\(=O\)$/);
+  const acidRadical = acidMatch ? acidMatch[1] + "C(=O)" : acid.smiles.replace("(=O)O", "(=O)");
+  const alcMatch = alcohol.smiles.match(/^(.*)O$/);
+  const alcRadical = alcMatch ? alcMatch[1] : alcohol.smiles.replace(/O$/, "");
   const ester = Molecule.fromSmilesSync(`${acidRadical}O${alcRadical}`);
   const water = Molecule.fromSmilesSync("O");
   const acidName = acid.name.split(" ")[0] || "Unknown";
   const alcName = alcohol.name.includes("anol") ? alcohol.name.replace("anol", "yl") : alcohol.name + "yl";
-  ester.name = `${alcName} ${acidName.toLowerCase()}ate`.replace("formicate", "formate").replace("aceticate", "acetate");
+  let esterName = `${alcName} ${acidName.toLowerCase()}ate`.replace("formicate", "formate").replace("aceticate", "acetate").replace("propanoicate", "propanoate").replace("butanoicate", "butanoate");
+  ester.name = esterName.charAt(0).toUpperCase() + esterName.slice(1);
   pMap.set(ester, energy / 2);
   pMap.set(water, energy / 2);
   return pMap;
 }
 function generateHydrolysis(ester, energy) {
-  const parts = ester.smiles.split("(=O)O");
-  if (parts.length === 2) {
+  const match = ester.smiles.match(/^(.*C\(=O\))O(.*)$/);
+  if (match) {
     const pMap = /* @__PURE__ */ new Map();
-    pMap.set(Molecule.fromSmilesSync(`${parts[0]}(=O)OH`), energy / 2);
-    pMap.set(Molecule.fromSmilesSync(`${parts[1]}O`), energy / 2);
+    pMap.set(Molecule.fromSmilesSync(`${match[1]}O`), energy / 2);
+    pMap.set(Molecule.fromSmilesSync(`${match[2]}O`), energy / 2);
     return pMap;
   }
   return /* @__PURE__ */ new Map();

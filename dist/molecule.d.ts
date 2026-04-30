@@ -73,10 +73,10 @@ export declare class Molecule {
     static canocIUPAC(iupacName: string): Molecule | null;
     static fromSmiles(smiles: string): Promise<Molecule>;
     static fromIUPAC(iupacName: string): Promise<Molecule>;
-    static fromName(name: string): Promise<Molecule[]>;
-    static fromFormula(formula: string): Promise<Molecule[]>;
-    static fromSemiFormula(semiFormula: string): Promise<Molecule[]>;
-    static fromAny(query: string | number): Promise<Molecule[]>;
+    static fromName(name: string, signal?: AbortSignal): Promise<Molecule[]>;
+    static fromFormula(formula: string, signal?: AbortSignal): Promise<Molecule[]>;
+    static fromSemiFormula(semiFormula: string, signal?: AbortSignal): Promise<Molecule[]>;
+    static fromAny(query: string | number, signal?: AbortSignal): Promise<Molecule[]>;
     /**
      * Helper to instantiate synchronously for high-speed Reactions.
      * Marks as parsed but NOT fetched.
