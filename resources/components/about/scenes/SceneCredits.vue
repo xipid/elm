@@ -11,6 +11,7 @@
   </section>
 </template>
 
+
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useScrollAnim } from '@/composables/useScrollAnim'
